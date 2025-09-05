@@ -288,26 +288,26 @@ GET {{baseUrl}}/api/dashboard HTTP/1.1
 ### Replace {tracking_id} with actual tracking ID
 ### Requires Admin API Key
 DELETE {{baseUrl}}/api/admin/signature/ece5f3e4-25f6-4270-868c-04aad7523947 HTTP/1.1
-X-Admin-Key: your-secure-admin-key-here
+X-Admin-Key: demo-admin-key-2024
 
 ###
 
 ### Delete All Signatures for a Specific Document Type
 ### Deletes all signatures for company_policy document
 DELETE {{baseUrl}}/api/admin/signatures/by-document/company_policy HTTP/1.1
-X-Admin-Key: your-secure-admin-key-here
+X-Admin-Key: demo-admin-key-2024
 
 ###
 
 ### Delete All Signatures for NDA Policy
 DELETE {{baseUrl}}/api/admin/signatures/by-document/nda_policy HTTP/1.1
-X-Admin-Key: your-secure-admin-key-here
+X-Admin-Key: demo-admin-key-2024
 
 ###
 
 ### Delete All Signatures for Dev Guidelines
 DELETE {{baseUrl}}/api/admin/signatures/by-document/dev_guidelines HTTP/1.1
-X-Admin-Key: your-secure-admin-key-here
+X-Admin-Key: demo-admin-key-2024
 
 ###
 
@@ -315,26 +315,26 @@ X-Admin-Key: your-secure-admin-key-here
 ### Set ADMIN_API_KEY environment variable first
 ### This will delete ALL signature and quiz data
 DELETE {{baseUrl}}/api/admin/clear-all-data HTTP/1.1
-X-Admin-Key: your-secure-admin-key-here
+X-Admin-Key: demo-admin-key-2024
 
 ###
 
 ### Clear Old Data - Delete data older than 30 days
 ### Requires Admin API Key
 DELETE {{baseUrl}}/api/admin/clear-old-data?days=30 HTTP/1.1
-X-Admin-Key: your-secure-admin-key-here
+X-Admin-Key: demo-admin-key-2024
 
 ###
 
 ### Clear Old Data - Delete data older than 7 days
 DELETE {{baseUrl}}/api/admin/clear-old-data?days=7 HTTP/1.1
-X-Admin-Key: your-secure-admin-key-here
+X-Admin-Key: demo-admin-key-2024
 
 ###
 
 ### Clear Old Data - Delete data older than 1 day (for testing)
 DELETE {{baseUrl}}/api/admin/clear-old-data?days=1 HTTP/1.1
-X-Admin-Key: your-secure-admin-key-here
+X-Admin-Key: demo-admin-key-2024
 
 ### =============================================
 ### NOTES

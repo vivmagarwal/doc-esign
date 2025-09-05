@@ -16,9 +16,12 @@ if __name__ == "__main__":
 
 ## Environment Variables
 Set all required env vars in Render dashboard:
-- API keys
-- Database paths
-- Service URLs
+- `OPENAI_API_KEY` - Your OpenAI API key
+- `OPENAI_MODEL` - Model to use (e.g., gpt-4o-mini)
+- `EMAIL_WEBHOOK_URL` - Webhook URL for email notifications
+- `APP_URL` - Your Render app URL (e.g., https://doc-esign.onrender.com)
+- `DB_PATH` - Database file path (e.g., db/esign.json)
+- `ADMIN_API_KEY` - Secret key for admin endpoints (e.g., demo-admin-key-2024)
 
 ## Start Command
 Use one of these:
