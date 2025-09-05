@@ -69,7 +69,8 @@ app.add_middleware(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+static_dir = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=str(static_dir), html=True), name="static")
 
 # ===============================
 # Pydantic Models
@@ -590,9 +591,9 @@ Try again at: {quiz_url}"""
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Serve the dashboard"""
-    file_path = "static/index.html"
-    if os.path.exists(file_path):
-        async with aiofiles.open(file_path, 'r') as f:
+    file_path = Path(__file__).parent / "static" / "index.html"
+    if file_path.exists():
+        async with aiofiles.open(str(file_path), 'r') as f:
             content = await f.read()
         return HTMLResponse(content=content)
     else:
@@ -880,9 +881,9 @@ async def get_dashboard(
 @app.get("/sign/{tracking_id}", response_class=HTMLResponse)
 async def sign_document_page(tracking_id: str):
     """Serve the signing interface"""
-    file_path = "static/sign.html"
-    if os.path.exists(file_path):
-        async with aiofiles.open(file_path, 'r') as f:
+    file_path = Path(__file__).parent / "static" / "sign.html"
+    if file_path.exists():
+        async with aiofiles.open(str(file_path), 'r') as f:
             content = await f.read()
         return HTMLResponse(content=content)
     else:
@@ -891,9 +892,9 @@ async def sign_document_page(tracking_id: str):
 @app.get("/quiz/{quiz_id}", response_class=HTMLResponse)
 async def quiz_page(quiz_id: str):
     """Serve the quiz interface"""
-    file_path = "static/quiz.html"
-    if os.path.exists(file_path):
-        async with aiofiles.open(file_path, 'r') as f:
+    file_path = Path(__file__).parent / "static" / "quiz.html"
+    if file_path.exists():
+        async with aiofiles.open(str(file_path), 'r') as f:
             content = await f.read()
         return HTMLResponse(content=content)
     else:
