@@ -8,3 +8,4 @@ pydantic==2.10.1
 python-multipart==0.0.12
 markdown==3.7
 aiofiles==24.1.0
+gunicorn==21.2.0
