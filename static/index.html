@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document E-Signature Dashboard</title>
+    <link rel="stylesheet" href="/static/css/design-tokens.css">
+    <style>
+        /* Page Specific Styles */
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-6);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            transition: all var(--transition-base);
+        }
+        
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        
+        .stat-number {
+            font-size: var(--text-3xl);
+            font-weight: var(--font-bold);
+            line-height: 1;
+            margin-bottom: var(--space-2);
+        }
+        
+        .stat-label {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+            font-weight: var(--font-medium);
+        }
+        
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-xs);
+        }
+        
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: var(--z-40);
+            display: none;
+        }
+        
+        .modal-backdrop.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-2xl);
+            padding: var(--space-8);
+            max-width: 480px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-2xl);
+            animation: slideUp var(--transition-slow) ease-out;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: var(--space-16) var(--space-8);
+        }
+        
+        .empty-state-icon {
+            font-size: var(--text-5xl);
+            margin-bottom: var(--space-4);
+            opacity: 0.3;
+        }
+        
+        .empty-state-title {
+            font-size: var(--text-xl);
+            font-weight: var(--font-semibold);
+            color: var(--gray-900);
+            margin-bottom: var(--space-2);
+        }
+        
+        .empty-state-text {
+            color: var(--gray-600);
+            margin-bottom: var(--space-6);
+        }
+        
+        .search-filter-container {
+            background: white;
+            border-radius: var(--radius-xl);
+            padding: var(--space-5);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--gray-200);
+            margin-bottom: var(--space-6);
+        }
+        
+        .logo {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        
+        .logo-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-100);
+            color: var(--primary-600);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-xl);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-5) 0;">
+                <div class="logo">
+                    <span class="logo-icon">📝</span>
+                    <span>Document E-Signature Platform</span>
+                </div>
+                <button onclick="showSendModal()" class="btn btn-primary">
+                    Send Document
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container" style="padding-top: var(--space-8); padding-bottom: var(--space-8);">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" style="margin-bottom: var(--space-8);">
+            <div class="stat-card">
+                <div class="stat-number" style="color: var(--gray-900);" id="totalCount">0</div>
+                <div class="stat-label">Total Documents</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color: var(--warning-600);" id="pendingCount">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color: var(--success-600);" id="completedCount">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" style="color: var(--danger-600);" id="failedCount">0</div>
+                <div class="stat-label">Failed</div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="search-filter-container">
+            <div style="display: flex; gap: var(--space-4); flex-wrap: wrap;">
+                <input type="text" id="searchInput" placeholder="Search by email or document..." 
+                       class="form-input" style="flex: 1; min-width: 250px;">
+                <select id="statusFilter" class="form-select" style="min-width: 150px;">
+                    <option value="">All Status</option>
+                    <option value="sent">Sent</option>
+                    <option value="acknowledged">Acknowledged</option>
+                    <option value="quiz_pending">Quiz Pending</option>
+                    <option value="quiz_failed">Quiz Failed</option>
+                    <option value="completed">Completed</option>
+                </select>
+                <button onclick="applyFilters()" class="btn btn-secondary">
+                    Filter
+                </button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-container">
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Document</th>
+                            <th>Sender</th>
+                            <th>Recipient</th>
+                            <th>Status</th>
+                            <th>Sent At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardTable">
+                        <!-- Table rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noDataMessage" class="empty-state hidden">
+                <div class="empty-state-icon">📄</div>
+                <div class="empty-state-title">No signatures found</div>
+                <div class="empty-state-text">Send a document to get started!</div>
+                <button onclick="showSendModal()" class="btn btn-primary">
+                    Send Your First Document
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Send Document Modal -->
+    <div id="sendModal" class="modal-backdrop">
+        <div class="modal-content">
+            <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); margin-bottom: var(--space-6);">
+                Send Document for Signature
+            </h3>
+            <form id="sendForm" style="display: flex; flex-direction: column; gap: var(--space-5);">
+                <div class="form-group">
+                    <label class="form-label">Your Email</label>
+                    <input type="email" name="sender_email" required class="form-input" 
+                           placeholder="john.doe@company.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Your Name</label>
+                    <input type="text" name="sender_name" required class="form-input" 
+                           placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Recipient Email</label>
+                    <input type="email" name="receiver_email" required class="form-input" 
+                           placeholder="jane.smith@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Document</label>
+                    <select name="document_id" required class="form-select">
+                        <option value="">Select a document...</option>
+                        <option value="company_policy">Company Policy</option>
+                        <option value="nda_policy">NDA Policy</option>
+                        <option value="dev_guidelines">Development Guidelines</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Purpose</label>
+                    <textarea name="purpose" required rows="3" class="form-textarea" 
+                              placeholder="Please review and acknowledge the annual company policy update..."></textarea>
+                </div>
+                <div style="display: flex; gap: var(--space-3); margin-top: var(--space-4);">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        Send Document
+                    </button>
+                    <button type="button" onclick="closeSendModal()" class="btn btn-secondary" style="flex: 1;">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+    <script>
+        // Update modal functions to work with new design
+        function showSendModal() {
+            document.getElementById('sendModal').classList.add('active');
+        }
+        
+        function closeSendModal() {
+            document.getElementById('sendModal').classList.remove('active');
+            document.getElementById('sendForm').reset();
+        }
+        
+        // Close modal on backdrop click
+        document.getElementById('sendModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSendModal();
+            }
+        });
+    </script>
+</body>
+</html>

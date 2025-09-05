@@ -1,0 +1,305 @@
+### Document E-Signature Platform API
+### VSCode REST Client file
+### Install extension: humao.rest-client
+### Click "Send Request" above each request to execute
+
+@baseUrl = http://localhost:8000
+@contentType = application/json
+
+### =============================================
+### HEALTH & STATUS
+### =============================================
+
+### Health Check
+GET {{baseUrl}}/health HTTP/1.1
+
+### =============================================
+### DOCUMENT MANAGEMENT
+### =============================================
+
+### List All Available Documents
+GET {{baseUrl}}/api/documents HTTP/1.1
+
+###
+
+### Get Specific Document - Company Policy
+GET {{baseUrl}}/api/documents/company_policy HTTP/1.1
+
+###
+
+### Get Specific Document - NDA Policy
+GET {{baseUrl}}/api/documents/nda_policy HTTP/1.1
+
+###
+
+### Get Specific Document - Development Guidelines
+GET {{baseUrl}}/api/documents/dev_guidelines HTTP/1.1
+
+### =============================================
+### SEND DOCUMENTS FOR SIGNATURE
+### =============================================
+
+### Send Company Policy for Signature
+POST {{baseUrl}}/api/send-document HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "sender_email": "john.doe@company.com",
+  "sender_name": "John Doe",
+  "purpose": "Annual company policy acknowledgment for 2024",
+  "receiver_email": "vivmagarwal@gmail.com",
+  "document_id": "company_policy"
+}
+
+###
+
+### Send NDA for Signature
+POST {{baseUrl}}/api/send-document HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "sender_email": "legal@company.com",
+  "sender_name": "Legal Department",
+  "purpose": "Confidentiality agreement for new project",
+  "receiver_email": "contractor@freelance.com",
+  "document_id": "nda_policy"
+}
+
+###
+
+### Send Development Guidelines for Signature
+POST {{baseUrl}}/api/send-document HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "sender_email": "cto@company.com",
+  "sender_name": "CTO Office",
+  "purpose": "Acknowledge development standards and best practices",
+  "receiver_email": "developer@company.com",
+  "document_id": "dev_guidelines"
+}
+
+###
+
+### Send Document with Minimal Data
+POST {{baseUrl}}/api/send-document HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "sender_email": "test@example.com",
+  "sender_name": "Test User",
+  "purpose": "Testing",
+  "receiver_email": "recipient@example.com",
+  "document_id": "company_policy"
+}
+
+### =============================================
+### SIGNATURE WORKFLOW
+### =============================================
+
+### Get Signature Status
+### Replace {tracking_id} with actual tracking ID from send-document response
+@trackingId = ece5f3e4-25f6-4270-868c-04aad7523947
+GET {{baseUrl}}/api/signature/{{trackingId}} HTTP/1.1
+
+###
+
+### Submit Signature Acknowledgment
+### Replace {tracking_id} with actual tracking ID
+POST {{baseUrl}}/api/submit-signature/{{trackingId}} HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "acknowledged": true,
+  "name": "Jane Smith",
+  "date": "2024-01-15",
+  "location": "New York, USA"
+}
+
+### =============================================
+### QUIZ WORKFLOW
+### =============================================
+
+### Get Quiz Questions
+### Replace {quiz_id} with actual quiz ID from submit-signature response
+@quizId = 6fb735d5-892d-43d6-a139-52099198d544
+GET {{baseUrl}}/api/quiz/{{quizId}} HTTP/1.1
+
+###
+
+### Submit Quiz Answers - Example (All First Options)
+### Replace {quiz_id} with actual quiz ID
+### Note: This will likely fail as it selects first option for all questions
+POST {{baseUrl}}/api/submit-quiz/{{quizId}} HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "answers": {
+    "q1": "To provide guidelines",
+    "q2": "Only new employees",
+    "q3": "Immediately upon acknowledgment"
+  }
+}
+
+###
+
+### Submit Quiz Answers - Likely Correct Answers
+### Replace {quiz_id} with actual quiz ID
+### Note: These are common correct answers for policy documents
+POST {{baseUrl}}/api/submit-quiz/{{quizId}} HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "answers": {
+    "q1": "All of the above",
+    "q2": "All employees",
+    "q3": "Immediately upon acknowledgment"
+  }
+}
+
+### =============================================
+### DASHBOARD
+### =============================================
+
+### Get Dashboard - All Signatures
+GET {{baseUrl}}/api/dashboard HTTP/1.1
+
+###
+
+### Get Dashboard with Pagination
+GET {{baseUrl}}/api/dashboard?limit=10&offset=0 HTTP/1.1
+
+###
+
+### Get Dashboard - Limited Results
+GET {{baseUrl}}/api/dashboard?limit=5&offset=0 HTTP/1.1
+
+### =============================================
+### ERROR TESTING
+### =============================================
+
+### Test Invalid Document ID
+GET {{baseUrl}}/api/documents/invalid_document HTTP/1.1
+
+###
+
+### Test Missing Required Fields
+POST {{baseUrl}}/api/send-document HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "sender_email": "test@example.com",
+  "sender_name": "Test User"
+}
+
+###
+
+### Test Invalid Email Format
+POST {{baseUrl}}/api/send-document HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "sender_email": "not-an-email",
+  "sender_name": "Test User",
+  "purpose": "Testing",
+  "receiver_email": "also-not-an-email",
+  "document_id": "company_policy"
+}
+
+###
+
+### Test Non-Existent Tracking ID
+GET {{baseUrl}}/api/signature/00000000-0000-0000-0000-000000000000 HTTP/1.1
+
+###
+
+### Test Non-Existent Quiz ID
+GET {{baseUrl}}/api/quiz/00000000-0000-0000-0000-000000000000 HTTP/1.1
+
+### =============================================
+### COMPLETE WORKFLOW EXAMPLE
+### =============================================
+
+### Step 1: Send Document
+# Copy the tracking_id from response
+POST {{baseUrl}}/api/send-document HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "sender_email": "workflow@company.com",
+  "sender_name": "Workflow Test",
+  "purpose": "Complete workflow testing",
+  "receiver_email": "test.recipient@example.com",
+  "document_id": "company_policy"
+}
+
+###
+
+### Step 2: Check Signature Status
+# Use tracking_id from Step 1
+GET {{baseUrl}}/api/signature/[TRACKING_ID_HERE] HTTP/1.1
+
+###
+
+### Step 3: Submit Signature
+# Use tracking_id from Step 1
+POST {{baseUrl}}/api/submit-signature/[TRACKING_ID_HERE] HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "acknowledged": true,
+  "name": "Test Recipient",
+  "date": "2024-01-15",
+  "location": "San Francisco, USA"
+}
+
+###
+
+### Step 4: Get Quiz
+# Use quiz_id from Step 3 response
+GET {{baseUrl}}/api/quiz/[QUIZ_ID_HERE] HTTP/1.1
+
+###
+
+### Step 5: Submit Quiz Answers
+# Use quiz_id from Step 3
+# Adjust answers based on actual questions from Step 4
+POST {{baseUrl}}/api/submit-quiz/[QUIZ_ID_HERE] HTTP/1.1
+Content-Type: {{contentType}}
+
+{
+  "answers": {
+    "q1": "[Answer from options]",
+    "q2": "[Answer from options]",
+    "q3": "[Answer from options]"
+  }
+}
+
+###
+
+### Step 6: Verify Completion in Dashboard
+GET {{baseUrl}}/api/dashboard HTTP/1.1
+
+### =============================================
+### NOTES
+### =============================================
+# 
+# 1. Install VSCode REST Client extension
+# 2. Start the server: python app.py
+# 3. Click "Send Request" above any request to execute
+# 4. Replace placeholder IDs with actual values from responses
+# 5. Variables at the top can be modified for different environments
+# 
+# Common Status Values:
+# - sent: Document sent, awaiting signature
+# - acknowledged: Signed, quiz pending
+# - quiz_pending: Quiz link sent
+# - quiz_failed: Quiz not passed
+# - completed: Successfully signed and verified
+#
+# Quiz Notes:
+# - All 3 questions must be answered correctly
+# - Questions are generated from document content
+# - Unlimited retakes allowed
+#
+### =============================================

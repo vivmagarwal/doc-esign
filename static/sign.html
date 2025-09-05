@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Document</title>
+    <link rel="stylesheet" href="/static/css/design-tokens.css">
+    <style>
+        /* Page Specific Styles */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-xs);
+        }
+        
+        .logo {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        
+        .logo-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-100);
+            color: var(--primary-600);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-xl);
+        }
+        
+        .document-viewer {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .document-viewer h1 {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            margin-top: var(--space-4);
+            margin-bottom: var(--space-2);
+        }
+        
+        .document-viewer h2 {
+            font-size: var(--text-xl);
+            font-weight: var(--font-bold);
+            margin-top: var(--space-3);
+            margin-bottom: var(--space-2);
+        }
+        
+        .document-viewer h3 {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            margin-top: var(--space-2);
+            margin-bottom: var(--space-1);
+        }
+        
+        .document-viewer p {
+            margin-bottom: var(--space-2);
+            line-height: var(--leading-relaxed);
+        }
+        
+        .document-viewer ul {
+            list-style: disc;
+            margin-left: var(--space-6);
+            margin-bottom: var(--space-2);
+        }
+        
+        .document-viewer ol {
+            list-style: decimal;
+            margin-left: var(--space-6);
+            margin-bottom: var(--space-2);
+        }
+        
+        .document-viewer li {
+            margin-bottom: var(--space-1);
+        }
+        
+        .document-viewer strong {
+            font-weight: var(--font-semibold);
+        }
+        
+        .document-viewer code {
+            background: var(--gray-200);
+            padding: 0 var(--space-1);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary-600);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .info-row {
+            display: flex;
+            align-items: baseline;
+            gap: var(--space-2);
+            margin-bottom: var(--space-1);
+        }
+        
+        .info-label {
+            font-size: var(--text-sm);
+            color: var(--gray-600);
+            font-weight: var(--font-medium);
+        }
+        
+        .info-value {
+            font-size: var(--text-sm);
+            color: var(--gray-900);
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-3);
+            cursor: pointer;
+        }
+        
+        .checkbox-input {
+            margin-top: 2px;
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary-600);
+        }
+        
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-4);
+            color: var(--success-500);
+        }
+        
+        .error-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-4);
+            color: var(--danger-500);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div style="padding: var(--space-5) 0;">
+                <div class="logo">
+                    <span class="logo-icon">📝</span>
+                    <span>Document Signature Request</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container" style="max-width: 960px; padding-top: var(--space-8); padding-bottom: var(--space-8);">
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center" style="padding: var(--space-12) 0;">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: var(--space-4); color: var(--gray-600);">Loading document...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden">
+            <div class="alert alert-danger" style="text-align: center; padding: var(--space-8);">
+                <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); margin-bottom: var(--space-2);">
+                    Document Not Found
+                </h3>
+                <p id="errorMessage" style="color: var(--danger-700); margin-bottom: var(--space-4);">
+                    The signature request could not be found or has expired.
+                </p>
+                <a href="/" class="btn btn-danger">Go to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Document Content -->
+        <div id="documentContent" class="hidden">
+            <!-- Document Info Card -->
+            <div class="card" style="margin-bottom: var(--space-6);">
+                <h2 id="documentTitle" style="font-size: var(--text-xl); font-weight: var(--font-semibold); margin-bottom: var(--space-3);">
+                    Document Title
+                </h2>
+                <div class="info-row">
+                    <span class="info-label">From:</span>
+                    <span id="senderInfo" class="info-value"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Purpose:</span>
+                    <span id="purposeText" class="info-value"></span>
+                </div>
+                <div style="margin-top: var(--space-4);">
+                    <span id="statusBadge" class="badge badge-info">Awaiting Signature</span>
+                </div>
+            </div>
+
+            <!-- Document Display Card -->
+            <div class="card" style="margin-bottom: var(--space-6);">
+                <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-4);">
+                    Document Content
+                </h3>
+                <div class="document-viewer" id="documentDisplay">
+                    <!-- Document HTML will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Signature Form Card -->
+            <div id="signatureForm" class="card">
+                <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-4);">
+                    Sign Document
+                </h3>
+                
+                <form id="signForm" style="display: flex; flex-direction: column; gap: var(--space-5);">
+                    <div class="alert alert-warning">
+                        <svg style="width: 20px; height: 20px; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div>
+                            <strong>Important:</strong> By signing this document, you acknowledge that you have read and understood its contents. 
+                            You will be required to complete a short quiz to verify your understanding.
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="acknowledged" required class="checkbox-input">
+                            <span style="color: var(--gray-700);">I have read and understood this document</span>
+                        </label>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="name" required class="form-input" placeholder="John Doe">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="date" required class="form-input">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Location (City, Country)</label>
+                        <input type="text" name="location" required class="form-input" placeholder="e.g., New York, USA">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        Sign & Continue to Quiz
+                    </button>
+                </form>
+            </div>
+
+            <!-- Already Signed Card -->
+            <div id="alreadySigned" class="hidden card">
+                <div class="text-center">
+                    <svg class="success-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); margin-bottom: var(--space-2);">
+                        Document Already Signed
+                    </h3>
+                    <p style="color: var(--gray-600); margin-bottom: var(--space-4);">
+                        You have already acknowledged this document.
+                    </p>
+                    <div id="quizStatus">
+                        <!-- Quiz status will be shown here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/sign.js"></script>
+</body>
+</html>

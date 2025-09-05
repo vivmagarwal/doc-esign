@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Verification Quiz</title>
+    <link rel="stylesheet" href="/static/css/design-tokens.css">
+    <style>
+        /* Page Specific Styles */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-xs);
+        }
+        
+        .logo {
+            font-size: var(--text-2xl);
+            font-weight: var(--font-bold);
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        
+        .logo-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-100);
+            color: var(--primary-600);
+            border-radius: var(--radius-lg);
+            font-size: var(--text-xl);
+        }
+        
+        .option-card {
+            border: 2px solid var(--gray-300);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            background: white;
+        }
+        
+        .option-card:hover {
+            border-color: var(--primary-300);
+            background: var(--primary-50);
+        }
+        
+        .option-card.selected {
+            border-color: var(--primary-500);
+            background: var(--primary-50);
+        }
+        
+        .progress-step {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-semibold);
+            font-size: var(--text-lg);
+            transition: all var(--transition-base);
+        }
+        
+        .progress-step.active {
+            background: var(--primary-600);
+            color: white;
+        }
+        
+        .progress-step.completed {
+            background: var(--success-600);
+            color: white;
+        }
+        
+        .progress-step.inactive {
+            background: var(--gray-200);
+            color: var(--gray-500);
+        }
+        
+        .progress-connector {
+            flex: 1;
+            height: 2px;
+            background: var(--gray-200);
+            margin: 0 var(--space-2);
+        }
+        
+        .progress-connector.completed {
+            background: var(--success-600);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary-600);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-4);
+            color: var(--danger-500);
+        }
+        
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-4);
+            color: var(--success-500);
+        }
+        
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: var(--z-40);
+            display: none;
+        }
+        
+        .modal-backdrop.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-2xl);
+            padding: var(--space-8);
+            max-width: 480px;
+            width: 90%;
+            box-shadow: var(--shadow-2xl);
+            animation: slideUp var(--transition-slow) ease-out;
+        }
+        
+        .instruction-item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-2);
+            color: var(--gray-600);
+            line-height: var(--leading-relaxed);
+        }
+        
+        .instruction-icon {
+            color: var(--primary-600);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div style="padding: var(--space-5) 0;">
+                <div class="logo">
+                    <span class="logo-icon">🧠</span>
+                    <span>Knowledge Verification Quiz</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container" style="max-width: 800px; padding-top: var(--space-8); padding-bottom: var(--space-8);">
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center" style="padding: var(--space-12) 0;">
+            <div class="loading-spinner"></div>
+            <p style="margin-top: var(--space-4); color: var(--gray-600);">Loading quiz...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden">
+            <div class="alert alert-danger" style="text-align: center; padding: var(--space-8);">
+                <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <h3 style="font-size: var(--text-xl); font-weight: var(--font-semibold); margin-bottom: var(--space-2);">
+                    Quiz Not Found
+                </h3>
+                <p id="errorMessage" style="color: var(--danger-700); margin-bottom: var(--space-4);">
+                    The quiz could not be found or has expired.
+                </p>
+                <a href="/" class="btn btn-danger">Go to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Quiz Content -->
+        <div id="quizContent" class="hidden">
+            <!-- Instructions Card -->
+            <div class="card" style="margin-bottom: var(--space-6);">
+                <h2 style="font-size: var(--text-xl); font-weight: var(--font-semibold); margin-bottom: var(--space-4);">
+                    Quiz Instructions
+                </h2>
+                <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+                    <div class="instruction-item">
+                        <span class="instruction-icon">•</span>
+                        <span>You must answer all 3 questions correctly to complete the signature process</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">•</span>
+                        <span>Each question is based on the document you just read</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">•</span>
+                        <span>You can retake the quiz if needed</span>
+                    </div>
+                    <div class="instruction-item">
+                        <span class="instruction-icon">•</span>
+                        <span>Take your time and read each question carefully</span>
+                    </div>
+                </div>
+                <div id="attemptInfo" style="margin-top: var(--space-4); font-size: var(--text-sm); color: var(--gray-500);">
+                    <!-- Attempt information will be shown here -->
+                </div>
+            </div>
+
+            <!-- Progress Card -->
+            <div class="card" style="margin-bottom: var(--space-6);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center;" id="progressBar">
+                        <div class="progress-step active" data-step="1">1</div>
+                        <div class="progress-connector"></div>
+                        <div class="progress-step inactive" data-step="2">2</div>
+                        <div class="progress-connector"></div>
+                        <div class="progress-step inactive" data-step="3">3</div>
+                    </div>
+                    <div style="font-size: var(--text-sm); color: var(--gray-500);">
+                        Question <span id="currentQuestion">1</span> of 3
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="card" style="margin-bottom: var(--space-6);" id="questionCard">
+                <h3 style="font-size: var(--text-lg); font-weight: var(--font-semibold); margin-bottom: var(--space-4);" id="questionText">
+                    <!-- Question text will be inserted here -->
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: var(--space-3);" id="optionsContainer">
+                    <!-- Options will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div style="display: flex; justify-content: space-between; gap: var(--space-4);">
+                <button id="prevBtn" onclick="previousQuestion()" class="btn btn-secondary" disabled>
+                    Previous
+                </button>
+                <button id="nextBtn" onclick="nextQuestion()" class="btn btn-primary">
+                    Next
+                </button>
+                <button id="submitBtn" onclick="submitQuiz()" class="btn btn-success hidden">
+                    Submit Quiz
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Modal -->
+        <div id="resultModal" class="modal-backdrop">
+            <div class="modal-content">
+                <div class="text-center" id="resultContent">
+                    <!-- Result content will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/quiz.js"></script>
+    <script>
+        // Update modal functions to work with new design
+        function showResultModal() {
+            document.getElementById('resultModal').classList.add('active');
+        }
+        
+        function closeResultModal() {
+            document.getElementById('resultModal').classList.remove('active');
+        }
+        
+        // Close modal on backdrop click
+        document.getElementById('resultModal').addEventListener('click', function(e) {
+            if (e.target === this && e.target.querySelector('.btn')) {
+                // Only close if there's a button (result has been shown)
+                closeResultModal();
+            }
+        });
+    </script>
+</body>
+</html>
