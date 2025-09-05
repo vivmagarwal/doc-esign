@@ -122,6 +122,8 @@ class SendDocumentRequest(BaseModel):
     purpose: str = Field(..., min_length=1, max_length=500)
     receiver_email: EmailStr
     document_id: str = Field(..., pattern="^[a-z_]+$")
+    employee_id: Optional[str] = Field(None, description="HRMS employee ID for webhook callbacks")
+    webhook_base_url: Optional[str] = Field(None, description="Base URL for webhook callbacks to HRMS")
 
 class SignatureSubmission(BaseModel):
     acknowledged: bool = Field(..., description="User acknowledged the document")
@@ -514,6 +516,28 @@ This quiz contains 3 questions and all must be answered correctly."""
     
     return await send_webhook(payload)
 
+async def send_hrms_webhook(webhook_base_url: str, endpoint: str, payload: Dict[str, Any]) -> bool:
+    """Send webhook callback to HRMS system"""
+    if not webhook_base_url:
+        logger.warning("No webhook base URL provided - skipping HRMS callback")
+        return False
+        
+    try:
+        webhook_url = f"{webhook_base_url.rstrip('/')}{endpoint}"
+        logger.info(f"🔔 Sending HRMS webhook to: {webhook_url}")
+        logger.info(f"📦 Webhook payload: {payload}")
+        
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(webhook_url, json=payload)
+            response.raise_for_status()
+            
+            logger.info(f"✅ HRMS webhook sent successfully: {endpoint}")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ Failed to send HRMS webhook: {e}")
+        return False
+
 async def send_completion_email(receiver_email: str, sender_email: str, document_title: str, passed: bool, quiz_id: str):
     """Send completion notification with HTML formatting"""
     receiver_name = receiver_email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
@@ -676,7 +700,10 @@ async def send_document(request: SendDocumentRequest):
         "acknowledged": False,
         "quiz_id": None,
         "quiz_passed": False,
-        "completed_at": None
+        "completed_at": None,
+        # Webhook fields for HRMS integration
+        "employee_id": request.employee_id,
+        "webhook_base_url": request.webhook_base_url
     }
     
     signatures_table.insert(signature_record)
@@ -764,6 +791,19 @@ async def submit_signature(tracking_id: str, submission: SignatureSubmission):
         },
         SignatureQuery.tracking_id == tracking_id
     )
+    
+    # Send webhook to HRMS about document signature
+    if signature.get("webhook_base_url") and signature.get("employee_id"):
+        await send_hrms_webhook(
+            signature["webhook_base_url"],
+            "/api/webhooks/document-status",
+            {
+                "employee_id": signature["employee_id"],
+                "document_type": signature["document_id"],
+                "status": "signed",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        )
     
     # Send quiz link email
     await send_quiz_link_email(quiz_id, signature["receiver_email"], signature["document_title"])
@@ -860,6 +900,30 @@ async def submit_quiz(quiz_id: str, submission: QuizSubmission):
             True,
             quiz_id
         )
+        
+        # Send webhook to HRMS about quiz completion
+        if signature.get("webhook_base_url") and signature.get("employee_id"):
+            # Map document_id to quiz_type for HRMS
+            quiz_type_mapping = {
+                "company_policy": "company_policy_quiz",
+                "nda_policy": "nda_quiz", 
+                "dev_guidelines": "dev_guidelines_quiz"
+            }
+            
+            quiz_type = quiz_type_mapping.get(signature["document_id"], f"{signature['document_id']}_quiz")
+            
+            await send_hrms_webhook(
+                signature["webhook_base_url"],
+                "/api/webhooks/quiz-status",
+                {
+                    "employee_id": signature["employee_id"],
+                    "quiz_type": quiz_type,
+                    "score": correct_count,
+                    "passed": True,
+                    "attempt_number": quiz["attempts"] + 1,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            )
     else:
         SignatureQuery = TinyQuery()
         signatures_table.update(
