@@ -64,8 +64,17 @@ function updateStats(signatures) {
 
 // Create table row HTML
 function createTableRow(signature) {
-    const sentDate = new Date(signature.created_at).toLocaleDateString();
+    const sentDateTime = new Date(signature.created_at);
+    const sentDate = sentDateTime.toLocaleDateString();
+    const sentTime = sentDateTime.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+    });
     const statusText = signature.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    
+    // Truncate tracking ID for display (show first 8 chars)
+    const shortTrackingId = signature.tracking_id.substring(0, 8) + '...';
     
     // Map status to badge class
     let badgeClass = 'badge-info';
@@ -90,6 +99,7 @@ function createTableRow(signature) {
             <td>
                 <div style="font-weight: var(--font-medium); color: var(--gray-900);">${signature.document_title || 'Unknown'}</div>
                 <div style="font-size: var(--text-sm); color: var(--gray-500);">${signature.document_id}</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-400); margin-top: 2px;" title="${signature.tracking_id}">ID: ${shortTrackingId}</div>
             </td>
             <td>
                 <div style="color: var(--gray-900);">${signature.sender_name}</div>
@@ -101,8 +111,9 @@ function createTableRow(signature) {
             <td>
                 <span class="badge ${badgeClass}">${statusText}</span>
             </td>
-            <td style="font-size: var(--text-sm); color: var(--gray-500);">
-                ${sentDate}
+            <td>
+                <div style="font-size: var(--text-sm); color: var(--gray-700);">${sentDate}</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-500);">${sentTime}</div>
             </td>
             <td>
                 <a href="/sign/${signature.tracking_id}" target="_blank" 
