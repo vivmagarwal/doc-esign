@@ -9,16 +9,20 @@ import uuid
 import asyncio
 import random
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+from contextlib import asynccontextmanager
 from enum import Enum
+import pytz
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 # FastAPI and dependencies
-from fastapi import FastAPI, HTTPException, Query, Path as PathParam
+from fastapi import FastAPI, HTTPException, Query, Path as PathParam, Depends, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field, EmailStr
 
 # Additional dependencies
@@ -42,6 +46,7 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 EMAIL_WEBHOOK_URL = os.getenv("EMAIL_WEBHOOK_URL")
 APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 DB_PATH = os.getenv("DB_PATH", "db/esign.json")
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "your-secure-admin-key-here")  # For admin endpoints
 
 # Initialize OpenAI client
 openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
@@ -52,11 +57,39 @@ db = TinyDB(DB_PATH)
 signatures_table = db.table('signatures')
 quizzes_table = db.table('quizzes')
 
+# Initialize scheduler for automatic data cleanup
+scheduler = AsyncIOScheduler(timezone=pytz.timezone('Asia/Kolkata'))
+
+# Forward declaration for scheduled_data_cleanup (defined later in admin section)
+async def scheduled_data_cleanup():
+    """Forward declaration - actual implementation in admin section"""
+    pass
+
+# Lifespan context manager for startup/shutdown events
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifecycle"""
+    # Startup
+    scheduler.add_job(
+        scheduled_data_cleanup,
+        CronTrigger(hour=0, minute=0, timezone=pytz.timezone('Asia/Kolkata')),
+        id='daily_cleanup',
+        name='Daily data cleanup at midnight IST',
+        replace_existing=True
+    )
+    scheduler.start()
+    logger.info("Scheduler started - Daily cleanup scheduled at midnight IST")
+    yield
+    # Shutdown
+    scheduler.shutdown()
+    logger.info("Scheduler stopped")
+
 # FastAPI app initialization
 app = FastAPI(
     title="Document E-Signature Platform",
     description="Document signing with AI-powered knowledge verification",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS configuration
@@ -114,7 +147,7 @@ class ApiResponse(BaseModel):
     message: str
     data: Optional[Any] = None
     error: Optional[str] = None
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # ===============================
 # Document Management
@@ -638,8 +671,8 @@ async def send_document(request: SendDocumentRequest):
         "receiver_email": request.receiver_email,
         "purpose": request.purpose,
         "status": DocumentStatus.SENT,
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
         "acknowledged": False,
         "quiz_id": None,
         "quiz_passed": False,
@@ -710,8 +743,8 @@ async def submit_signature(tracking_id: str, submission: SignatureSubmission):
     quiz_record = {
         "quiz_id": quiz_id,
         "tracking_id": tracking_id,
-        "questions": [q.dict() for q in questions],
-        "created_at": datetime.utcnow().isoformat(),
+        "questions": [q.model_dump() for q in questions],
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "attempts": 0,
         "passed": False
     }
@@ -727,7 +760,7 @@ async def submit_signature(tracking_id: str, submission: SignatureSubmission):
             "signer_name": submission.name,
             "status": DocumentStatus.QUIZ_PENDING,
             "quiz_id": quiz_id,
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat()
         },
         SignatureQuery.tracking_id == tracking_id
     )
@@ -798,7 +831,7 @@ async def submit_quiz(quiz_id: str, submission: QuizSubmission):
         {
             "attempts": quiz["attempts"] + 1,
             "passed": passed,
-            "last_attempt": datetime.utcnow().isoformat(),
+            "last_attempt": datetime.now(timezone.utc).isoformat(),
             "last_score": correct_count
         },
         QuizQuery.quiz_id == quiz_id
@@ -813,8 +846,8 @@ async def submit_quiz(quiz_id: str, submission: QuizSubmission):
             {
                 "status": DocumentStatus.COMPLETED,
                 "quiz_passed": True,
-                "completed_at": datetime.utcnow().isoformat(),
-                "updated_at": datetime.utcnow().isoformat()
+                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
             },
             SignatureQuery.quiz_id == quiz_id
         )
@@ -901,6 +934,115 @@ async def quiz_page(quiz_id: str):
         return HTMLResponse(content="<h1>Quiz interface coming soon...</h1>")
 
 # ===============================
+# Admin Functions & Endpoints
+# ===============================
+
+async def verify_admin_key(x_admin_key: str = Header(None)):
+    """Verify admin API key"""
+    if not x_admin_key or x_admin_key != ADMIN_API_KEY:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing admin API key. Provide X-Admin-Key header."
+        )
+    return True
+
+async def clear_all_signature_data():
+    """Clear all signature and quiz data from the database"""
+    try:
+        # Clear all records from both tables
+        signatures_cleared = len(signatures_table.all())
+        quizzes_cleared = len(quizzes_table.all())
+        
+        signatures_table.truncate()
+        quizzes_table.truncate()
+        
+        logger.info(f"Data cleared - Signatures: {signatures_cleared}, Quizzes: {quizzes_cleared}")
+        
+        return {
+            "signatures_cleared": signatures_cleared,
+            "quizzes_cleared": quizzes_cleared,
+            "timestamp": datetime.now(pytz.timezone('Asia/Kolkata')).isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error clearing data: {str(e)}")
+        raise
+
+@app.delete("/api/admin/clear-all-data", response_model=ApiResponse)
+async def clear_all_data_endpoint(admin_verified: bool = Depends(verify_admin_key)):
+    """
+    Clear all signature and quiz data from the database.
+    Requires admin authentication via X-Admin-Key header.
+    """
+    result = await clear_all_signature_data()
+    
+    return ApiResponse(
+        success=True,
+        message="All signature data cleared successfully",
+        data=result
+    )
+
+@app.delete("/api/admin/clear-old-data", response_model=ApiResponse)
+async def clear_old_data_endpoint(
+    days: int = Query(30, ge=1, le=365, description="Delete data older than this many days"),
+    admin_verified: bool = Depends(verify_admin_key)
+):
+    """
+    Clear signature and quiz data older than specified days.
+    Requires admin authentication via X-Admin-Key header.
+    """
+    try:
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff_str = cutoff_date.isoformat()
+        
+        # Count records to be deleted
+        SignatureQuery = TinyQuery()
+        QuizQuery = TinyQuery()
+        
+        old_signatures = signatures_table.search(SignatureQuery.created_at < cutoff_str)
+        old_quizzes = quizzes_table.search(QuizQuery.created_at < cutoff_str)
+        
+        signatures_count = len(old_signatures)
+        quizzes_count = len(old_quizzes)
+        
+        # Delete old records
+        signatures_table.remove(SignatureQuery.created_at < cutoff_str)
+        quizzes_table.remove(QuizQuery.created_at < cutoff_str)
+        
+        return ApiResponse(
+            success=True,
+            message=f"Cleared data older than {days} days",
+            data={
+                "signatures_cleared": signatures_count,
+                "quizzes_cleared": quizzes_count,
+                "cutoff_date": cutoff_str,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error clearing old data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to clear old data")
+
+# Scheduled task for automatic data cleanup (replaces forward declaration)
+scheduled_data_cleanup = None  # Clear the forward declaration
+async def scheduled_data_cleanup():
+    """Automatically clear all data at midnight IST"""
+    try:
+        result = await clear_all_signature_data()
+        logger.info(f"Scheduled data cleanup completed: {result}")
+        
+        # Optional: Send notification about cleanup
+        if EMAIL_WEBHOOK_URL:
+            ist_time = datetime.now(pytz.timezone('Asia/Kolkata'))
+            await send_webhook({
+                "event_type": "scheduled_cleanup",
+                "message": "Nightly data cleanup completed",
+                "data": result,
+                "timestamp": ist_time.isoformat()
+            })
+    except Exception as e:
+        logger.error(f"Scheduled cleanup failed: {str(e)}")
+
+# ===============================
 # Health Check
 # ===============================
 
@@ -915,7 +1057,8 @@ async def health_check():
             "version": "1.0.0",
             "openai_configured": bool(OPENAI_API_KEY),
             "webhook_configured": bool(EMAIL_WEBHOOK_URL),
-            "database_connected": True
+            "database_connected": True,
+            "scheduler_running": scheduler.running
         }
     )
 
