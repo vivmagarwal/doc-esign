@@ -981,6 +981,93 @@ async def clear_all_data_endpoint(admin_verified: bool = Depends(verify_admin_ke
         data=result
     )
 
+@app.delete("/api/admin/signature/{tracking_id}", response_model=ApiResponse)
+async def delete_signature(tracking_id: str, admin_verified: bool = Depends(verify_admin_key)):
+    """
+    Delete a specific signature and its associated quiz data.
+    Requires admin authentication via X-Admin-Key header.
+    """
+    SignatureQuery = TinyQuery()
+    QuizQuery = TinyQuery()
+    
+    # Find the signature
+    signature = signatures_table.get(SignatureQuery.tracking_id == tracking_id)
+    
+    if not signature:
+        raise HTTPException(status_code=404, detail="Signature not found")
+    
+    # Delete associated quiz if exists
+    quiz_deleted = False
+    if signature.get("quiz_id"):
+        quiz = quizzes_table.get(QuizQuery.quiz_id == signature["quiz_id"])
+        if quiz:
+            quizzes_table.remove(QuizQuery.quiz_id == signature["quiz_id"])
+            quiz_deleted = True
+    
+    # Delete the signature
+    signatures_table.remove(SignatureQuery.tracking_id == tracking_id)
+    
+    return ApiResponse(
+        success=True,
+        message="Signature deleted successfully",
+        data={
+            "tracking_id": tracking_id,
+            "document_id": signature.get("document_id"),
+            "quiz_deleted": quiz_deleted,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
+
+@app.delete("/api/admin/signatures/by-document/{document_id}", response_model=ApiResponse)
+async def delete_signatures_by_document(
+    document_id: str = PathParam(..., pattern="^[a-z_]+$"),
+    admin_verified: bool = Depends(verify_admin_key)
+):
+    """
+    Delete all signatures for a specific document type.
+    Requires admin authentication via X-Admin-Key header.
+    """
+    SignatureQuery = TinyQuery()
+    QuizQuery = TinyQuery()
+    
+    # Find all signatures for this document
+    signatures = signatures_table.search(SignatureQuery.document_id == document_id)
+    
+    if not signatures:
+        return ApiResponse(
+            success=True,
+            message="No signatures found for this document",
+            data={
+                "document_id": document_id,
+                "signatures_deleted": 0,
+                "quizzes_deleted": 0
+            }
+        )
+    
+    # Collect quiz IDs to delete
+    quiz_ids = [sig["quiz_id"] for sig in signatures if sig.get("quiz_id")]
+    
+    # Delete associated quizzes
+    quizzes_deleted = 0
+    for quiz_id in quiz_ids:
+        if quizzes_table.remove(QuizQuery.quiz_id == quiz_id):
+            quizzes_deleted += 1
+    
+    # Delete all signatures for this document
+    signatures_deleted = len(signatures)
+    signatures_table.remove(SignatureQuery.document_id == document_id)
+    
+    return ApiResponse(
+        success=True,
+        message=f"Deleted all signatures for document: {document_id}",
+        data={
+            "document_id": document_id,
+            "signatures_deleted": signatures_deleted,
+            "quizzes_deleted": quizzes_deleted,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
+
 @app.delete("/api/admin/clear-old-data", response_model=ApiResponse)
 async def clear_old_data_endpoint(
     days: int = Query(30, ge=1, le=365, description="Delete data older than this many days"),
