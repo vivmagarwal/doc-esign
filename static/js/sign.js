@@ -135,8 +135,8 @@ async function handleSignSubmit(event) {
         const result = await response.json();
         
         if (result.success) {
-            // Redirect to quiz
-            window.location.href = result.data.quiz_url;
+            // Redirect to dashboard after signing
+            window.location.href = '/';
         } else {
             alert(`Error: ${result.message || 'Failed to submit signature'}`);
         }
