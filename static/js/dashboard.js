@@ -65,12 +65,21 @@ function updateStats(signatures) {
 // Create table row HTML
 function createTableRow(signature) {
     const sentDateTime = new Date(signature.created_at);
-    const sentDate = sentDateTime.toLocaleDateString();
-    const sentTime = sentDateTime.toLocaleTimeString('en-US', { 
+    
+    // Convert to IST timezone
+    const sentDateIST = sentDateTime.toLocaleDateString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const sentTimeIST = sentDateTime.toLocaleTimeString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
         hour: '2-digit', 
         minute: '2-digit',
         hour12: true 
     });
+    
     const statusText = signature.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
     
     // Truncate tracking ID for display (show first 8 chars)
@@ -112,8 +121,8 @@ function createTableRow(signature) {
                 <span class="badge ${badgeClass}">${statusText}</span>
             </td>
             <td>
-                <div style="font-size: var(--text-sm); color: var(--gray-700);">${sentDate}</div>
-                <div style="font-size: var(--text-xs); color: var(--gray-500);">${sentTime}</div>
+                <div style="font-size: var(--text-sm); color: var(--gray-700);">${sentDateIST}</div>
+                <div style="font-size: var(--text-xs); color: var(--gray-500);">${sentTimeIST} IST</div>
             </td>
             <td>
                 <a href="/sign/${signature.tracking_id}" target="_blank" 
